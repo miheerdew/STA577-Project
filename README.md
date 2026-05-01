@@ -25,7 +25,7 @@ How to get started on this project:
 - Watch Prof. Fletcher Christensen's first video
 - Start writing in your own words:
   - what the scientific problem means and what needs to be done,
-  - start to visualize the data think about what answers it provides for the scientific problem (I will also upload code to do this by Monday).
+  - start to visualize the data and think about what answers it provides for the scientific problem (I will also upload code to do this by Monday).
 
 ## Regarding group work and grading
 
