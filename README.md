@@ -17,7 +17,9 @@ We have a short timeline to finish this project. I am going to act as our manage
 
 I will be available for questions anytime (email me). We will meet next week at our regular class time to discuss the progress with each group.
 
-## Some tips on getting started
+## Guidelines
+
+### Some tips on getting started (by May 4)
 
 How to get started on this project:
 
@@ -27,6 +29,18 @@ How to get started on this project:
   - what the scientific problem means and what needs to be done,
   - how to analyze this scientific problem,
   - start to read and visualize what the data say about the scientific problem (I will upload code by Monday).
+
+### Next steps after forming groups (by May 6)
+
+- Cleaning and data preparation.
+- Run and understand the preliminary analysis in `bcarotine_NIMBLE_analysis.qmd`. (Watch Prof. Fletcher Christensen's second and third videos for more context).
+- Decide on model you want to use to address your scientific problem.
+
+### Run analysis on your model, create diagnostics, and plots (by May 8)
+
+- You should send me an intermediate report by May 8 on the analysis that you have done.
+
+# Tips
 
 ## Regarding group work and grading
 

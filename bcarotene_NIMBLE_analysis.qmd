@@ -1,0 +1,225 @@
+---
+title: "Beta-Carotene Mixed-Effects Analysis (NIMBLE)"
+author: "Miheer Dewaskar (adapted from Prof. Fletcher Christensen)"
+---
+
+```{r setup}
+library(nimble)
+library(coda)
+```
+
+## Data Import
+
+Update `bc_datafile` to match your local path.
+
+```{r data}
+bc_datafile <- "bcarotene.csv"   # <-- update path as needed
+
+bc_data <- read.csv(bc_datafile)
+
+ptid   <- bc_data$ptid
+month  <- bc_data$month
+bcarot <- bc_data$bcarot
+vite   <- bc_data$vite
+dose   <- bc_data$dose
+age    <- bc_data$age
+male   <- bc_data$male
+bmi    <- bc_data$bmi
+chol   <- bc_data$chol
+cauc   <- bc_data$cauc
+vauc   <- bc_data$vauc
+```
+
+## Derived Variables and Design Matrix
+
+This is **a demo model** that shows how to use NIMBLE, not necessarily **the model that I recommend using**. Watch Prof. Fletcher Christensen's second and third videos to understand what this is doing.
+
+```{r design}
+n          <- nrow(bc_data)
+n_patients <- length(unique(ptid))
+
+intercept <- rep(1, n)
+tx        <- intercept - (month < 4)   # 0 before month 4, 1 from month 4 onward
+
+x            <- cbind(intercept, tx * dose, age)
+n_covariates <- ncol(x)
+
+tau_b <- 0.00001   # flat prior precision for fixed effects
+```
+
+## MCMC Parameters
+
+These are just placeholds, and might need to change these parameters based on MCMC diagnostics.
+
+```{r mcmc-params}
+chains     <- 1
+burn_in    <- 1000
+iterations <- 100000
+thin       <- 1
+```
+
+## NIMBLE Model
+
+This is a basic demo of a `random effects` model with `x` denoting covariate matrix (see discussion above where this was defined).
+
+```{r model}
+bc_code <- nimbleCode({
+
+  ## Likelihood
+  for (i in 1:n) {
+    bcarot[i] ~ dnorm(mu[i], tau_bc)
+    mu[i]     <- inprod(x[i, 1:n_covariates], beta[1:n_covariates]) + gamma[ptid[i]]
+  }
+
+  ## Patient-level random effects
+  for (j in 1:n_patients) {
+    gamma[j] ~ dnorm(0, tau_g)
+  }
+
+  ## Fixed-effects priors
+  for (k in 1:n_covariates) {
+    beta[k] ~ dnorm(0, tau_b)
+  }
+
+  ## Precision priors
+  tau_bc ~ dgamma(0.001, 0.001)
+  tau_g  ~ dgamma(0.001, 0.001)
+
+  ## Derived standard deviations
+  sigma_bc <- pow(tau_bc, -0.5)
+  sigma_g  <- pow(tau_g,  -0.5)
+
+})
+```
+
+## Constants, Data, and Inits
+
+NIMBLE distinguishes *constants* (values that index loops or define fixed structure)
+from *data* (observed stochastic nodes). Mixing them causes silent errors, so they
+are kept separate here.
+
+```{r data-lists}
+## Constants: anything that appears as a loop bound or fixed hyperparameter
+bc_constants <- list(
+  n            = n,
+  n_patients   = n_patients,
+  n_covariates = n_covariates,
+  tau_b        = tau_b,
+  ptid         = ptid,    # used as an index into gamma[]
+  x            = x
+)
+
+## Data: observed stochastic nodes
+bc_data_list <- list(
+  bcarot = bcarot
+)
+
+## Initial values
+bc_inits <- list(
+  beta   = rnorm(n_covariates, 0, 1),
+  gamma  = rnorm(n_patients,   0, 1),
+  tau_bc = runif(1, 0, 2),
+  tau_g  = runif(1, 0, 2)
+)
+```
+
+## Run MCMC
+
+```{r build, results='hide'}
+## If you don't need custom samplers, nimbleMCMC() is a shorter wrapper
+## around model building, MCMC configuration, compilation, and execution.
+set.seed(42)
+
+bc_samples <- nimbleMCMC(
+  code      = bc_code,
+  constants = bc_constants,
+  data      = bc_data_list,
+  inits     = bc_inits,
+  monitors  = c("beta", "gamma", "sigma_bc", "sigma_g"),
+  niter     = iterations,
+  nburnin   = burn_in,
+  nchains   = chains,
+  thin      = thin,
+  setSeed   = FALSE,   # using set.seed(42) above
+  samplesAsCodaMCMC = TRUE
+)
+```
+
+
+## Extract Posterior Samples
+
+```{r extract}
+## runMCMC with nchains=1 returns a single mcmc object;
+## with nchains>1 it returns an mcmc.list. Handle both.
+if (chains == 1) {
+  bc_iterates <- as.data.frame(as.matrix(bc_samples))
+} else {
+  bc_iterates <- as.data.frame(as.matrix(bc_samples))  # combines all chains
+}
+
+## Column names follow NIMBLE's convention: "beta[1]", "gamma[1]", etc.
+beta_cols  <- paste0("beta[",  1:n_covariates, "]")
+gamma_cols <- paste0("gamma[", 1:n_patients,   "]")
+sigma_cols <- c("sigma_bc", "sigma_g")
+
+posterior_betas  <- bc_iterates[, beta_cols,  drop = FALSE]
+posterior_gammas <- bc_iterates[, gamma_cols, drop = FALSE]
+posterior_sigmas <- bc_iterates[, sigma_cols, drop = FALSE]
+```
+
+## Posterior Summaries
+
+### Fixed Effects
+
+```{r summary-beta}
+summary_betas <- t(apply(posterior_betas, 2, function(x)
+  c(Mean   = mean(x),
+    SD     = sd(x),
+    `2.5%` = unname(quantile(x, 0.025)),
+    `97.5%`= unname(quantile(x, 0.975)))))
+
+knitr::kable(summary_betas, digits = 4,
+             caption = "Posterior summary: fixed effects (beta)")
+```
+
+### Variance Components
+
+```{r summary-sigma}
+summary_sigmas <- t(apply(posterior_sigmas, 2, function(x)
+  c(Mean    = mean(x),
+    SD      = sd(x),
+    `2.5%`  = unname(quantile(x, 0.025)),
+    `97.5%` = unname(quantile(x, 0.975)))))
+
+knitr::kable(summary_sigmas, digits = 4,
+             caption = "Posterior summary: residual and random-effect SDs")
+```
+
+### Random Effects (first 10 patients)
+
+```{r summary-gamma}
+summary_gammas <- t(apply(posterior_gammas[, 1:min(10, n_patients), drop=FALSE], 2, function(x)
+  c(Mean    = mean(x),
+    SD      = sd(x),
+    `2.5%`  = unname(quantile(x, 0.025)),
+    `97.5%` = unname(quantile(x, 0.975)))))
+
+knitr::kable(summary_gammas, digits = 4,
+             caption = "Posterior summary: patient random effects, first 10 patients")
+```
+
+## MCMC Diagnostics
+
+```{r diagnostics, fig.height=5}
+## Trace and density plots for key parameters
+plot(bc_samples[, beta_cols,  drop = FALSE], ask = FALSE)
+plot(bc_samples[, sigma_cols, drop = FALSE], ask = FALSE)
+```
+
+```{r ess}
+## Effective sample size
+ess <- effectiveSize(bc_samples[, c(beta_cols, sigma_cols), drop = FALSE])
+knitr::kable(data.frame(Parameter = names(ess), ESS = round(ess)),
+             row.names = FALSE,
+             caption = "Effective sample size for fixed effects and variance components")
+```
