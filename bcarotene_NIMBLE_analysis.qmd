@@ -16,7 +16,64 @@ Update `bc_datafile` to match your local path.
 bc_datafile <- "bcarotene.csv"   # <-- update path as needed
 
 bc_data <- read.csv(bc_datafile)
+```
 
+## Data Cleaning
+
+Note first that different patients in the study have data for a different number of months.
+
+```{r}
+library(dplyr)
+
+bc_data |>
+  group_by(ptid) |> summarize(obs.count = n())
+```
+
+Some patients in fact even have their month number repeating (whenever num_obs > num_months).
+
+```{r}
+bc_data |> group_by(ptid) |> summarize(num.obs = n(), num.months = n_distinct(month))
+```
+
+Let's see which patients received what doeses
+
+```{r}
+bc_data |> group_by(ptid) |> summarize(doses = unique(dose))
+```
+
+Note that months 0-3 are supposed to be placebo for everybody but their dosage does not say this.
+
+```{r}
+bc_data |> 
+  filter(month %in% 0:3) |> 
+    group_by(ptid) |> 
+      summarize(zero_count = sum(dose==0))
+```
+
+Let's plot bcarot levels for patient versus time, along with their average levels. We should expect to see a "jump" around month 4.
+
+```{r}
+library(ggplot2)
+
+for(ptid.s in unique(bc_data$ptid)) {
+  dose.s <- unique(bc_data[bc_data$ptid == ptid.s, "dose"])
+  age.s <- unique(bc_data[bc_data$ptid == ptid.s, "age"])
+  male.s <- unique(bc_data[bc_data$ptid == ptid.s, "male"])
+
+  bc_data |> 
+    filter(ptid == ptid.s) |>
+      ggplot(aes(y=bcarot, x=month)) + geom_point() + 
+        # show patient information in the title
+        ggtitle(sprintf("Patient %d: Dose = %d, Age = %d, Male = %d", ptid.s, dose.s, age.s, male.s)) -> g
+  print(g)
+}
+```
+
+We can see that some months repeat and have abnormally high bcarot value (compare these to AUC). You can remove such values, but must clearly document this.
+
+## Model fitting
+
+```{r}
 ptid   <- bc_data$ptid
 month  <- bc_data$month
 bcarot <- bc_data$bcarot
