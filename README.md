@@ -2,7 +2,43 @@
 
 We have a short timeline to finish this project. I am going to act as our manager to help finish this on time. I will be generous with the grading as long I see that you have put in reasonable work on this.
 
-### Timeline
+
+## Grading rubric
+
+Each person will be graded on their individual section and also the quality of the overall project. In order for me to grade fairly based on effort, I need to see your progress and intermediate reports (below) by the respective deadlines.
+
+### Progress reports (15%)
+
+- As per my email on May 4th, share a google doc with me that discusses:
+   - **division of labor**: who has taken responsibility for which section, 
+   - **progress**: the work that is completed for each section, 
+   - **planning**: what work still needs to be completed for each section, and 
+   - **meeting minutes**: when did you meet, who was present, and what was discussed.
+
+- **Three of these reports** should be sent to me by email **before May 6th, May 8th, and May 13th** respectively showing progress being made towards completion.
+
+### Intermediate report (25%)
+
+- This needs to be a quarto/PDF document showing:
+   - Your data cleaning and exploratory analysis steps, 
+   - The model that you have decided to use and stating scientific motivation behind it,
+   - Results from running the model. Be sure to do some basic validation of the model output (check MCMC mixing, see if the results make sense based on scientific background).
+   - Finally, highlight any items that still need to be completed for the final report.
+
+**Email me the intermediate report by May 10th**. 
+
+### Final report (60%)
+
+This is the final PDF report that is **due by May 15th** as per our project document. One you have submitted the intermediate report, this should mainly involve finishing the writing (and any previously incomplete items). 
+
+While grading for the progress and intermediate reports would be based mainly on your effort (and how well you respond to my feedback), the grading for the final report will be based primarily on  the quality of writing and analysis in
+
+- your individual sections (30%), and 
+- an overall quality of the report (30%). 
+
+## Rough guidelines to get started
+
+*May 6th update:* These were my old guidelines. Read the rubric section above for updated timelines and project deliverables.
 
 - May 4th:
   - Watch Prof. Fletcher Christensen's first video.
@@ -16,8 +52,6 @@ We have a short timeline to finish this project. I am going to act as our manage
   - Final report due.
 
 I will be available for questions anytime (email me). We will meet next week at our regular class time to discuss the progress with each group.
-
-## Guidelines
 
 ### Some tips on getting started (by May 4)
 
@@ -38,11 +72,3 @@ How to get started on this project:
 ### Run analysis on your model, create diagnostics, and plots (by May 8)
 
 - You should send me an intermediate report by May 8 on the analysis that you have done.
-
-# Tips
-
-## Regarding group work and grading
-
-- I want documentation of who did what (how long did you meet and who plans to do what, and regular updates of progress in class).
-- One person should not be carrying the load.
-- Each person will be graded on their individual section and also the quality of the overall project.
