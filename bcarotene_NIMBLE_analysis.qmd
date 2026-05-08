@@ -71,7 +71,39 @@ for(ptid.s in unique(bc_data$ptid)) {
 
 We can see that some months repeat and have abnormally high bcarot value (compare these to AUC). You can remove such values, but must clearly document this.
 
+> Since different patients have data on vastly different scales, it might be a good idea to log-transform the data. One of the groups is doing it. Is this a common practice in PK data? We might need to also do this if the model your fit below does not lead to roughly normal residuals.
+
 ## Model fitting
+
+How should we decide what model to fit? Well that depends on various things:
+
+1. (Bayesian perspective) What are our beliefs about how the data may have been generated? 
+2. (Scientific perspective) What is the scientific question we are trying to answer? Typically we will fit a model whose parameters can be used to obtain information about our scientific problem of interest.
+3. (Model fit) How well does the model actually fit the data? This is a practical question we should always be asking. One typically can check this drawing from the posterior predictive draws and seeing if the draws match the observed data.
+
+In this case, it seems difficult to follow (1) since our beliefs are likely about an underlying biological process and will not immediately lead to the simplistic model that we will fit. So we in turn focus on finding a simple model that answers the scientific problem (2). Then we need to check the model to see if it indeed provides a reasonable fit.
+
+Our aim is to understand how the `dose` affects `bcarot`. For patient $i$ and month $t$, the simplest model for $y_{t,i}=\log(`bcarot`)$ may be
+
+$$
+y_{t,i} = \beta_{0} + \beta_{1} dose_i + \beta_{2} age_i + \beta_{3} I\{male_i==1\} + \epsilon_{t,i}
+$$
+
+However here are some problems:
+
+- It assumes the same scale of baseline $\beta_0$ for everybody.
+- For months $0-3$ are supposed to be placebo.
+
+A better model may be
+$$
+y_{t,i} = \gamma_{i} + \beta_{1} dose_i I\{t \geq 4\} + \beta_{2} age_i + \beta_{3} I\{male_i==1\} + \epsilon_{t,i}
+$$
+
+## Model Checking
+
+How to check if the model is a good fit? We can fit this model and see if the error residuals  $\epsilon_{t,i}$ appear to be normally distributed and homoscedastic. A more general approach is [Posterior Predicive Checks](https://mc-stan.org/docs/stan-users-guide/posterior-predictive-checks.html) which generate posterior predictive samples from the posterior and see if they have same important features as the data. This is an open ended but very important question, so try to do a good job to justify the model that you are using.
+
+## NIMBLE code for model fitting
 
 ```{r}
 ptid   <- bc_data$ptid
@@ -87,7 +119,7 @@ cauc   <- bc_data$cauc
 vauc   <- bc_data$vauc
 ```
 
-## Derived Variables and Design Matrix
+### Derived Variables and Design Matrix
 
 This is **a demo model** that shows how to use NIMBLE, not necessarily **the model that I recommend using**. Watch Prof. Fletcher Christensen's second and third videos to understand what this is doing.
 
@@ -104,7 +136,7 @@ n_covariates <- ncol(x)
 tau_b <- 0.00001   # flat prior precision for fixed effects
 ```
 
-## MCMC Parameters
+### MCMC Parameters
 
 These are just placeholds, and might need to change these parameters based on MCMC diagnostics.
 
@@ -115,7 +147,7 @@ iterations <- 100000
 thin       <- 1
 ```
 
-## NIMBLE Model
+### NIMBLE Model
 
 This is a basic demo of a `random effects` model with `x` denoting covariate matrix (see discussion above where this was defined).
 
@@ -149,7 +181,7 @@ bc_code <- nimbleCode({
 })
 ```
 
-## Constants, Data, and Inits
+### Constants, Data, and Inits
 
 NIMBLE distinguishes *constants* (values that index loops or define fixed structure)
 from *data* (observed stochastic nodes). Mixing them causes silent errors, so they
@@ -180,7 +212,7 @@ bc_inits <- list(
 )
 ```
 
-## Run MCMC
+### Run MCMC
 
 ```{r build, results='hide'}
 ## If you don't need custom samplers, nimbleMCMC() is a shorter wrapper
@@ -203,7 +235,7 @@ bc_samples <- nimbleMCMC(
 ```
 
 
-## Extract Posterior Samples
+### Extract Posterior Samples
 
 ```{r extract}
 ## runMCMC with nchains=1 returns a single mcmc object;
@@ -224,9 +256,9 @@ posterior_gammas <- bc_iterates[, gamma_cols, drop = FALSE]
 posterior_sigmas <- bc_iterates[, sigma_cols, drop = FALSE]
 ```
 
-## Posterior Summaries
+### Posterior Summaries
 
-### Fixed Effects
+#### Fixed Effects
 
 ```{r summary-beta}
 summary_betas <- t(apply(posterior_betas, 2, function(x)
@@ -239,7 +271,7 @@ knitr::kable(summary_betas, digits = 4,
              caption = "Posterior summary: fixed effects (beta)")
 ```
 
-### Variance Components
+#### Variance Components
 
 ```{r summary-sigma}
 summary_sigmas <- t(apply(posterior_sigmas, 2, function(x)
@@ -252,7 +284,7 @@ knitr::kable(summary_sigmas, digits = 4,
              caption = "Posterior summary: residual and random-effect SDs")
 ```
 
-### Random Effects (first 10 patients)
+#### Random Effects (first 10 patients)
 
 ```{r summary-gamma}
 summary_gammas <- t(apply(posterior_gammas[, 1:min(10, n_patients), drop=FALSE], 2, function(x)
@@ -265,7 +297,7 @@ knitr::kable(summary_gammas, digits = 4,
              caption = "Posterior summary: patient random effects, first 10 patients")
 ```
 
-## MCMC Diagnostics
+### MCMC Diagnostics
 
 ```{r diagnostics, fig.height=5}
 ## Trace and density plots for key parameters
